@@ -25,11 +25,39 @@ Ball :: struct {
     color: rl.Color,
 }
 
+build_stack :: proc() -> [16][12]Brick {
+    stack: [16][12]Brick
+    brick_width := SCREEN_WIDTH / 16
+    brick_height := SCREEN_HEIGHT / 60
+
+    for i in 0..< len(stack) {
+        for j in 0..<len(stack[i]) {
+            new_brick := Brick{}
+            new_brick.length = i32(brick_width)
+            new_brick.width = i32(brick_height)
+            new_brick.pos = {i32(brick_width * i), i32(brick_height * j)}
+            stack[i][j] = new_brick
+        }
+    }
+    return stack
+}
+
+draw_stack :: proc(stack: [16][12]Brick) {
+    for i in 0..<len(stack) {
+        for j in 0..<len(stack[i]) {
+            new_rect := rl.Rectangle{f32(stack[i][j].pos.x), f32(stack[i][j].pos.y), f32(stack[i][j].length), f32(stack[i][j].width)}
+            rl.DrawRectangleLinesEx(new_rect, .5, rl.WHITE)
+        }
+    }
+}
+
 main :: proc() {
     rl.SetTraceLogLevel(.ERROR)
     rl.SetConfigFlags({.MSAA_4X_HINT, .WINDOW_HIGHDPI, .VSYNC_HINT})
 
     rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stack Smacker")
+
+    stack := build_stack()
 
     ball := Ball{}
     ball.center = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}
@@ -50,6 +78,8 @@ main :: proc() {
         rl.DrawCircle(ball.center.x, ball.center.y, ball.radius, ball.color)
         ball.center.x += ball.velocity.x
         ball.center.y += ball.velocity.y
+
+        draw_stack(stack)
 
         if ball.center.y >= player.pos.y - player.width {
             ball.velocity.y *= -1
