@@ -29,10 +29,10 @@ Ball :: struct {
     color: rl.Color,
 }
 
-build_stack :: proc() -> [16][12]Brick {
-    stack: [16][12]Brick
+build_stack :: proc() -> [16][6]Brick {
+    stack: [16][6]Brick
     brick_width := SCREEN_WIDTH / 16
-    brick_height := SCREEN_HEIGHT / 60
+    brick_height := SCREEN_HEIGHT / 30
 
     for i in 0..< len(stack) {
         for j in 0..<len(stack[i]) {
@@ -48,7 +48,7 @@ build_stack :: proc() -> [16][12]Brick {
     return stack
 }
 
-draw_stack :: proc(stack: [16][12]Brick) {
+draw_stack :: proc(stack: [16][6]Brick) {
     for i in 0..<len(stack) {
         for j in 0..<len(stack[i]) {
             if stack[i][j].visible {
@@ -59,7 +59,7 @@ draw_stack :: proc(stack: [16][12]Brick) {
     }
 }
 
-smack_check :: proc(ball: ^Ball, stack: ^[16][12]Brick) {
+smack_check :: proc(ball: ^Ball, stack: ^[16][6]Brick) {
     loop: for i in 0..<len(stack) {
         for j in 0..<len(stack[i]) {
             if rl.CheckCollisionCircleRec({f32(ball.center.x), f32(ball.center.y)}, ball.radius, stack[i][j].rect) && stack[i][j].visible {
@@ -106,7 +106,7 @@ main :: proc() {
             ball.velocity.x *= -1
         }
         if ball.center.y - i32(ball.radius) <= 0 {
-            ball.center.y *= -1
+            ball.velocity.y *= -1
         }
         
         draw_stack(stack)
