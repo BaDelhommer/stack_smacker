@@ -1,9 +1,11 @@
 package main
 
+import "core:fmt"
 import rl "vendor:raylib"
 
 SCREEN_WIDTH :: 1440
 SCREEN_HEIGHT :: 720
+SPEED :: 10
 
 Player :: struct {
     pos: [2]i32,
@@ -15,6 +17,8 @@ Player :: struct {
 Brick :: struct {
     pos: [2]i32,
     length, width: i32,
+    rect: rl.Rectangle,
+    visible: bool,
     color: rl.Color,
 }
 
@@ -36,6 +40,8 @@ build_stack :: proc() -> [16][12]Brick {
             new_brick.length = i32(brick_width)
             new_brick.width = i32(brick_height)
             new_brick.pos = {i32(brick_width * i), i32(brick_height * j)}
+            new_brick.visible = true
+            new_brick.rect = rl.Rectangle{f32(new_brick.pos.x), f32(new_brick.pos.y), f32(new_brick.length), f32(new_brick.width)}
             stack[i][j] = new_brick
         }
     }
@@ -45,8 +51,22 @@ build_stack :: proc() -> [16][12]Brick {
 draw_stack :: proc(stack: [16][12]Brick) {
     for i in 0..<len(stack) {
         for j in 0..<len(stack[i]) {
-            new_rect := rl.Rectangle{f32(stack[i][j].pos.x), f32(stack[i][j].pos.y), f32(stack[i][j].length), f32(stack[i][j].width)}
-            rl.DrawRectangleLinesEx(new_rect, .5, rl.WHITE)
+            if stack[i][j].visible {
+                // new_rect := rl.Rectangle{f32(stack[i][j].pos.x), f32(stack[i][j].pos.y), f32(stack[i][j].length), f32(stack[i][j].width)}
+                rl.DrawRectangleLinesEx(stack[i][j].rect, .5, rl.WHITE)
+            }
+        }
+    }
+}
+
+smack_check :: proc(ball: ^Ball, stack: ^[16][12]Brick) {
+    loop: for i in 0..<len(stack) {
+        for j in 0..<len(stack[i]) {
+            if rl.CheckCollisionCircleRec({f32(ball.center.x), f32(ball.center.y)}, ball.radius, stack[i][j].rect) && stack[i][j].visible {
+                stack[i][j].visible = false
+                ball.velocity.y *= -1
+                break loop
+            }
         }
     }
 }
@@ -76,15 +96,22 @@ main :: proc() {
         rl.BeginDrawing()
         rl.DrawRectangle(player.pos.x, player.pos.y, player.length, player.width, player.color)
         rl.DrawCircle(ball.center.x, ball.center.y, ball.radius, ball.color)
-        ball.center.x += ball.velocity.x
-        ball.center.y += ball.velocity.y
 
-        draw_stack(stack)
-
-        if ball.center.y >= player.pos.y - player.width {
+        if ball.center.y >= player.pos.y - player.width && ball.center.x < player.pos.x + player.length && ball.center.x > player.pos.x {
             ball.velocity.y *= -1
             ball.velocity.x = player.x_velocity
         }
+
+        if ball.center.x >= SCREEN_WIDTH || ball.center.x <= 0 {
+            ball.velocity.x *= -1
+        }
+        if ball.center.y - i32(ball.radius) <= 0 {
+            ball.center.y *= -1
+        }
+        
+        draw_stack(stack)
+
+        smack_check(&ball, &stack)
 
         switch {
             case rl.IsKeyDown(.A):
@@ -95,7 +122,16 @@ main :: proc() {
                 player.x_velocity = 0
         }
 
-        player.pos.x += player.x_velocity
+        player.pos.x += player.x_velocity * SPEED
+        if player.pos.x + player.length > SCREEN_WIDTH {
+            player.pos.x = SCREEN_WIDTH - player.length
+        }
+        if player.pos.x < 0 {
+            player.pos.x = 0
+        }
+
+        ball.center.x += ball.velocity.x * SPEED
+        ball.center.y += ball.velocity.y * SPEED
 
         rl.ClearBackground(rl.BLACK)
 
