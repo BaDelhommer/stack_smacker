@@ -52,7 +52,6 @@ draw_stack :: proc(stack: [16][6]Brick) {
     for i in 0..<len(stack) {
         for j in 0..<len(stack[i]) {
             if stack[i][j].visible {
-                // new_rect := rl.Rectangle{f32(stack[i][j].pos.x), f32(stack[i][j].pos.y), f32(stack[i][j].length), f32(stack[i][j].width)}
                 rl.DrawRectangleLinesEx(stack[i][j].rect, .5, rl.WHITE)
             }
         }
