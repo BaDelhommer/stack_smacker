@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:mem"
 import rl "vendor:raylib"
 
 SCREEN_WIDTH :: 1440
@@ -75,7 +76,6 @@ smack_check :: proc(ball: ^Ball, stack: ^[16][6]Brick) {
 check_game_over :: proc(ball: ^Ball, state: ^GAME_STATE) {
     if ball.center.y + i32(ball.radius) > SCREEN_HEIGHT {
         state^ = GAME_STATE.OVER
-        fmt.println("GAME OVER YOU SUCK")
     }
 }
 
@@ -154,6 +154,21 @@ reset :: proc(stack: ^[16][6]Brick, ball: ^Ball, player: ^Player) {
 }
 
 main :: proc() {
+    when ODIN_DEBUG {
+            track: mem.Tracking_Allocator
+            mem.tracking_allocator_init(&track, context.allocator)
+            context.allocator = mem.tracking_allocator(&track)
+
+            defer {
+                if len(track.allocation_map) > 0 {
+                    fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+                    for _, entry in track.allocation_map {
+                        fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+                    }
+                }
+                mem.tracking_allocator_destroy(&track)
+            }
+        }
     rl.SetTraceLogLevel(.ERROR)
     rl.SetConfigFlags({.MSAA_4X_HINT, .WINDOW_HIGHDPI, .VSYNC_HINT})
 
