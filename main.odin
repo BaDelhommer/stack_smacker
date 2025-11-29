@@ -7,6 +7,8 @@ SCREEN_WIDTH :: 1440
 SCREEN_HEIGHT :: 720
 SPEED :: 10
 
+GAME_STATE :: enum { START, MAIN, OVER }
+
 Player :: struct {
     pos: [2]i32,
     length, width: i32,
@@ -70,35 +72,21 @@ smack_check :: proc(ball: ^Ball, stack: ^[16][6]Brick) {
     }
 }
 
-check_game_over :: proc(ball: Ball) {
+check_game_over :: proc(ball: ^Ball, state: ^GAME_STATE) {
     if ball.center.y + i32(ball.radius) > SCREEN_HEIGHT {
+        state^ = GAME_STATE.OVER
         fmt.println("GAME OVER YOU SUCK")
     }
 }
 
-main :: proc() {
-    rl.SetTraceLogLevel(.ERROR)
-    rl.SetConfigFlags({.MSAA_4X_HINT, .WINDOW_HIGHDPI, .VSYNC_HINT})
+start_game :: proc(state: ^GAME_STATE) {
+    if rl.GuiButton(rl.Rectangle{SCREEN_WIDTH / 2, SCREEN_HEIGHT /2, 200, 100}, cstring("START")) {
+        state^ = GAME_STATE.MAIN
+    }
+}
 
-    rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stack Smacker")
+main_game :: proc(state: ^GAME_STATE, player: ^Player, ball: ^Ball, stack: ^[16][6]Brick) {
 
-    stack := build_stack()
-
-    ball := Ball{}
-    ball.center = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}
-    ball.radius = 10.0
-    ball.velocity = {0, 1}
-    ball.color = rl.WHITE
-
-    player := Player{}
-    player.pos = {(SCREEN_WIDTH / 2) -50, (SCREEN_HEIGHT / 4) * 3}
-    player.length = 100
-    player.width = 10
-    player.color = rl.RED
-    player.x_velocity = 0
-
-    for !rl.WindowShouldClose() {
-        rl.BeginDrawing()
         rl.DrawRectangle(player.pos.x, player.pos.y, player.length, player.width, player.color)
         rl.DrawCircle(ball.center.x, ball.center.y, ball.radius, ball.color)
 
@@ -114,9 +102,9 @@ main :: proc() {
             ball.velocity.y *= -1
         }
 
-        draw_stack(stack)
+        draw_stack(stack^)
 
-        smack_check(&ball, &stack)
+        smack_check(ball, stack)
 
         switch {
             case rl.IsKeyDown(.A):
@@ -138,7 +126,60 @@ main :: proc() {
         ball.center.x += ball.velocity.x * SPEED
         ball.center.y += ball.velocity.y * SPEED
 
-        check_game_over(ball)
+        check_game_over(ball, state)
+}
+
+game_over :: proc(state: ^GAME_STATE, stack: ^[16][6]Brick, ball: ^Ball, player: ^Player) {
+    reset(stack, ball, player)
+    if rl.GuiButton(rl.Rectangle{SCREEN_WIDTH / 2, SCREEN_HEIGHT /2, 200, 100}, cstring("PLAY AGAIN?")) {
+        state^ = GAME_STATE.MAIN
+    }
+}
+
+reset :: proc(stack: ^[16][6]Brick, ball: ^Ball, player: ^Player) {
+
+    stack^ = build_stack()
+
+    ball.center = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}
+    ball.radius = 10.0
+    ball.velocity = {0, 1}
+    ball.color = rl.WHITE
+
+
+    player.pos = {(SCREEN_WIDTH / 2) -50, (SCREEN_HEIGHT / 4) * 3}
+    player.length = 100
+    player.width = 10
+    player.color = rl.RED
+    player.x_velocity = 0
+}
+
+main :: proc() {
+    rl.SetTraceLogLevel(.ERROR)
+    rl.SetConfigFlags({.MSAA_4X_HINT, .WINDOW_HIGHDPI, .VSYNC_HINT})
+
+    rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stack Smacker")
+
+    stack := [16][6]Brick{}
+
+    state := GAME_STATE.START
+
+    ball := Ball{}
+
+    player := Player{}
+
+    reset(&stack, &ball, &player)
+
+    for !rl.WindowShouldClose() {
+        rl.BeginDrawing()
+
+        switch state {
+            case .START:
+                start_game(&state)
+            case .MAIN:
+                main_game(&state, &player, &ball, &stack)
+            case .OVER:
+                game_over(&state, &stack, &ball, &player)
+        }
 
         rl.ClearBackground(rl.BLACK)
 
