@@ -70,6 +70,12 @@ smack_check :: proc(ball: ^Ball, stack: ^[16][6]Brick) {
     }
 }
 
+check_game_over :: proc(ball: Ball) {
+    if ball.center.y + i32(ball.radius) > SCREEN_HEIGHT {
+        fmt.println("GAME OVER YOU SUCK")
+    }
+}
+
 main :: proc() {
     rl.SetTraceLogLevel(.ERROR)
     rl.SetConfigFlags({.MSAA_4X_HINT, .WINDOW_HIGHDPI, .VSYNC_HINT})
@@ -107,7 +113,7 @@ main :: proc() {
         if ball.center.y - i32(ball.radius) <= 0 {
             ball.velocity.y *= -1
         }
-        
+
         draw_stack(stack)
 
         smack_check(&ball, &stack)
@@ -131,6 +137,8 @@ main :: proc() {
 
         ball.center.x += ball.velocity.x * SPEED
         ball.center.y += ball.velocity.y * SPEED
+
+        check_game_over(ball)
 
         rl.ClearBackground(rl.BLACK)
 
